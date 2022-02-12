@@ -1,8 +1,82 @@
 import Head from 'next/head'
-import Image from 'next/image'
+import { useEffect, useState } from 'react';
 import styles from '../styles/Home.module.css'
+const Web3 = require('web3')
+
+var web3 = new Web3(Web3.givenProvider);
 
 export default function Home() {
+  const [sinfo, setinfo] = useState('');
+
+  useEffect(function mount() {
+    async function load() {
+
+      if (window.ethereum) {
+        window.web3 = new Web3(window.ethereum);
+        try {
+          ethereum.enable()
+        } catch (error) {
+          console.log('user rejected permission')
+        }
+      } else if (window.web3) {
+        window.web3 = new Web3(window.web3.currentProvider)
+      }
+      else {
+        window.alert('Non-Ethereum browser detected. You should consider trying MetaMask!')
+      }
+      console.log(window.web3.currentProvider);
+    }
+    window.addEventListener("load", load);
+
+    return function unMount() {
+      window.removeEventListener("load", load);
+    };
+
+  }, []);
+
+  // contractAddress and abi are setted after contract deploy
+  var contractAddress = '0xbB26Ff947532C54E9eAF40439696eF99149bDEaC';
+  var abi = JSON.parse('[{"constant":true,"inputs":[],"name":"getInfo","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_info","type":"string"}],"name":"setInfo","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}]');
+
+
+
+  //contract instance
+  var contract = new web3.eth.Contract(abi, contractAddress);
+
+  // Accounts
+  var account;
+
+
+  web3.eth.getAccounts(function (err, accounts) {
+    if (err != null) {
+      console.log("Error retrieving accounts.");
+      return;
+    }
+    if (accounts.length == 0) {
+      console.log("No account found! Make sure the Ethereum client is configured properly.");
+      return;
+    }
+    account = accounts[0];
+    console.log('Account: ' + account);
+    web3.eth.defaultAccount = account;
+  });
+
+
+  function setInfo() {
+    contract.methods.setInfo(sinfo).send({ from: account }).then(function (tx) {
+      console.log("Transaction: ", tx);
+    });
+  }
+
+  function getInfo() {
+    contract.methods.getInfo().call().then(function (info) {
+      console.log("info: ", info);
+      document.getElementById("display").innerHTML = " " + info;
+    });
+    setinfo('');
+  }
+
+
   return (
     <div className={styles.container}>
       <Head>
@@ -12,58 +86,16 @@ export default function Home() {
       </Head>
 
       <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
-          >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
+        <div className="set">
+          <input onChange={e => setinfo(e.target.value)}></input>
+          <button onClick={setInfo}>Set Info</button>
+        </div>
+        <div className='fetch'>
+          <button onClick={getInfo}>Fetch Info</button>
+          <span id="display"></span>
         </div>
       </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
     </div>
+
   )
 }
